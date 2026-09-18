@@ -69,18 +69,45 @@ We tested this extensively, so this isn't a guess:
   before concluding it's a real ceiling for this model class on big
   requests specifically.
 - **`devstral:24b`** — a model Mistral specifically built for *agentic*
-  coding (not just code completion) — fixed this outright, on the first
-  try, verified with a real multi-file scaffold (React + Vite frontend,
-  Node/Express backend, MongoDB, auth routes — 14 files, all correct,
-  consistent naming across routes/controllers/models). It's 14GB, so on a
-  12GB card it partially spills to CPU/system RAM — slower than the fully
-  GPU-resident 14B models, but reliable enough to be worth the wait for
-  anything more than a single-file edit.
+  coding (not just code completion) — noticeably more reliable at this than
+  the 14-16B models: one verified run produced a real multi-file scaffold
+  (React + Vite frontend, Node/Express backend, MongoDB, auth routes — 14
+  files, all correct, consistent naming across routes/controllers/models).
+  It's 14GB, so on a 12GB card it partially spills to CPU/system RAM —
+  noticeably slower (~4 tok/s) than the fully GPU-resident 14B models.
+  **It's not 100% reliable either** — it can hit the same narrate-instead-
+  of-write failure. Use `aider-retry.sh` (below) rather than letting Aider
+  argue with itself in place when that happens.
 - Don't assume "coder" variants beat general instruct models for *agentic*
   editing specifically — in our testing, `qwen2.5-coder:14b` also
   intermittently refused login/auth-related requests outright (a
   false-positive safety trigger, not a capability gap), on top of the same
   format-adherence issues as the non-coder model.
+
+## When it fails: retry fresh, don't let it argue with itself
+
+If Aider gets the format wrong, it auto-retries in place ("reflection") —
+but that feeds the model a growing, increasingly confused conversation
+history, and each cycle on `devstral:24b` can take 5-6+ minutes on a
+partially-CPU-offloaded 12GB card. We watched one real session do this for
+30+ minutes across 5 cycles without ever converging. **If you see it
+repeating a generic acknowledgment like "Understood, let's proceed..." and
+starting over, stop it (Ctrl+C) rather than waiting it out.**
+
+Use `aider-retry.sh` instead — it runs the request, checks whether real
+files actually landed (ignoring Aider's own bookkeeping files), and if not,
+retries with a **completely fresh attempt** rather than continuing the
+failed conversation. These failures aren't deterministic — a clean retry
+has a real chance of just working:
+
+```bash
+cd your-project
+~/Documents/dev/local-ai-rig/aider-retry.sh "create a react + vite app with node backend, mongodb, a login page, and a secured page that says 'welcome!'. call it ReactTest"
+# optional: [max_attempts] [model], defaults to 3 attempts on devstral:24b
+```
+
+Each attempt's full log is saved under `.aider-retry-logs/` in your project
+directory for review if all attempts fail.
 
 ## Known issues
 
