@@ -26,6 +26,18 @@ fi
 
 export OLLAMA_API_BASE="${OLLAMA_API_BASE:-http://192.168.1.3:11434}"
 
+# Force a git repo scoped to THIS directory before Aider ever runs. Without
+# this, if any ANCESTOR directory happens to be a git repo (e.g. because an
+# earlier Aider session was accidentally launched from there and
+# auto-created one), Aider treats that ancestor as the project root and
+# writes files relative to it instead of here - files land in the wrong
+# place entirely, silently, while looking successful. Learned this the
+# hard way. `git init` on an already-git-tracked directory is a no-op, so
+# this is always safe to run.
+if [ ! -d .git ]; then
+  git init -q
+fi
+
 LOGDIR="$(pwd)/.aider-retry-logs"
 mkdir -p "$LOGDIR"
 

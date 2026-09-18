@@ -47,9 +47,20 @@ applied (drop `yes-always`).
 
 ```bash
 cd your-project
+git init       # see the warning below - do this if the folder isn't a repo yet
 aider          # quick edits to existing files
 aider-big      # starting something new, multiple files at once
 ```
+
+> **Always start a new project with its own `git init` first.** If the
+> folder you launch Aider from isn't itself a git repo, but some *ancestor*
+> directory is (e.g. because an earlier Aider session was accidentally run
+> one level up and auto-created a repo there), Aider treats that ancestor
+> as the project root and writes files relative to *it* — not the folder
+> you're actually in. This happens silently: Aider reports success, the
+> files just land somewhere else entirely, potentially mixed in with
+> unrelated projects. `aider-retry.sh` does this for you automatically;
+> plain `aider`/`aider-big` do not.
 
 ## Choosing a model
 
