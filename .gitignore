@@ -1,0 +1,3 @@
+# Open WebUI's Python venv, created by setup-pc.ps1 on the PC. Hundreds of
+# MB, machine-specific, never belongs in version control.
+.openwebui-venv/
