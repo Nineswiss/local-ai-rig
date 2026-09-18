@@ -116,15 +116,31 @@ including after pulling a different model.
 
 **Web search** is also enabled by default, using DuckDuckGo — free, no API
 key or signup needed, so it doesn't cost `setup-pc.ps1` its clone-and-run
-simplicity. `qwen2.5:14b` and `devstral:24b` can both use it automatically;
-just ask something that needs current info and the model will search when
-it decides it's useful. **This is the one feature in this repo that needs
-real internet** — everything else works fully offline over your LAN, but
-web search obviously can't, since it has to reach the actual web. If
-you're offline and the model tries to search, the search itself will
-fail; we haven't specifically tested how gracefully the model handles
-that failure, so don't assume it'll clearly tell you rather than
-answering from its own (possibly outdated) knowledge instead.
+simplicity. Trigger it either by asking something that needs current info
+(the model decides whether to search), or force it by clicking the `+`
+icon next to the message box and toggling **Web Search** on before you
+send.
+
+**Use `devstral:24b` for anything that needs search** — verified working
+end-to-end (search executes, results get cited). **`qwen2.5:14b` currently
+doesn't work for this**: verified live, both automatic and forced, and
+instead of calling the tool it dumps raw
+`{"name": "search_web", "arguments": {...}}` text into the chat as if it
+were part of the answer. Ollama itself handles tool-calling for this model
+correctly (confirmed by calling its native API directly) and the context
+window is fine, so this isn't a config problem — it's Open WebUI failing
+to parse qwen2.5's particular tool-call format during a streamed response,
+which matches several currently-open upstream Open WebUI issues around
+tool-calls leaking as text mid-stream. Nothing to fix on our end; revisit
+if/when Open WebUI ships a fix.
+
+**This is the one feature in this repo that needs real internet** —
+everything else works fully offline over your LAN, but web search
+obviously can't, since it has to reach the actual web. If you're offline
+and the model tries to search, the search itself will fail; we haven't
+specifically tested how gracefully the model handles that failure, so
+don't assume it'll clearly tell you rather than answering from its own
+(possibly outdated) knowledge instead.
 
 ## Starting and stopping the services
 
