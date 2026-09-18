@@ -20,7 +20,10 @@
 #      since it needs <3.13), opens the firewall for port 8080, walks you
 #      through first-run admin signup, then applies known-good per-model
 #      settings (fixes a real "does not support tools" error the vision
-#      model hits under Open WebUI's default config) via seed-model-config.py
+#      model hits under Open WebUI's default config) via seed-model-config.py,
+#      and enables web search (DuckDuckGo, no API key needed) via
+#      enable-web-search.py - only works while the PC has real internet,
+#      unlike everything else here
 #   6. Prints the URLs your other machines should use to connect
 
 param(
@@ -161,6 +164,7 @@ if (-not $SkipWebUI) {
     # The actual webui.db location, relative to the venv's site-packages
     $dbPath = Get-ChildItem -Path $venvDir -Recurse -Filter "webui.db" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
     $seedScript = Join-Path $ScriptDir "seed-model-config.py"
+    $webSearchScript = Join-Path $ScriptDir "enable-web-search.py"
     $adminCheckScript = Join-Path $ScriptDir "check-admin-exists.py"
 
     [Environment]::SetEnvironmentVariable("OLLAMA_BASE_URL", "http://127.0.0.1:11434", "User")
@@ -199,6 +203,9 @@ if (-not $SkipWebUI) {
 
     $dbPath = Get-ChildItem -Path $venvDir -Recurse -Filter "webui.db" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
     & "$venvDir\Scripts\python.exe" $seedScript $dbPath
+
+    Write-Host "Enabling web search (DuckDuckGo, no API key needed)..."
+    & "$venvDir\Scripts\python.exe" $webSearchScript $dbPath
 
     Write-Host "Restarting Open WebUI..."
     Start-DetachedProcess -FilePath $webuiExe -ArgumentList "serve --host 0.0.0.0 --port 8080" | Out-Null

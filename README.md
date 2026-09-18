@@ -104,13 +104,27 @@ admin UI by hand:
 - **`qwen2.5vl:7b`** is set to `Function Calling: Legacy` (its default mode
   throws a "does not support tools" error the moment you attach an image —
   a real bug in how Open WebUI probes tool support, not a model
-  limitation) and gets a 📷 description so it's obvious at a glance which
-  model in the dropdown can actually see images.
+  limitation), is renamed to "qwen2.5vl:7b 📷" so it's obvious at a glance
+  in the model picker which one can see images, and has web search
+  disabled for it specifically (see below) to keep it simple.
 - **`qwen2.5:14b`** and **`devstral:24b`** get descriptions explaining
-  what each is best for (see [Choosing a model](#choosing-a-model)).
+  what each is best for (see [Choosing a model](#choosing-a-model)) —
+  visible by clicking a model's ⓘ icon in the picker.
 
 Re-running `setup-pc.ps1` re-applies these settings — safe to do any time,
 including after pulling a different model.
+
+**Web search** is also enabled by default, using DuckDuckGo — free, no API
+key or signup needed, so it doesn't cost `setup-pc.ps1` its clone-and-run
+simplicity. `qwen2.5:14b` and `devstral:24b` can both use it automatically;
+just ask something that needs current info and the model will search when
+it decides it's useful. **This is the one feature in this repo that needs
+real internet** — everything else works fully offline over your LAN, but
+web search obviously can't, since it has to reach the actual web. If
+you're offline and the model tries to search, the search itself will
+fail; we haven't specifically tested how gracefully the model handles
+that failure, so don't assume it'll clearly tell you rather than
+answering from its own (possibly outdated) knowledge instead.
 
 ## Starting and stopping the services
 
@@ -280,6 +294,7 @@ browser chat: nothing to clone at all — just open the URL from any device.
 | `start-pc.ps1` / `start-pc.bat` | PC | Starts Ollama/Open WebUI if not already running (no install/network needed) |
 | `stop-pc.ps1` / `stop-pc.bat` | PC | Stops Ollama/Open WebUI (frees GPU VRAM, clean restarts) |
 | `seed-model-config.py` | PC (called by `setup-pc.ps1`) | Writes known-good per-model settings into Open WebUI's database |
+| `enable-web-search.py` | PC (called by `setup-pc.ps1`) | Turns on web search (DuckDuckGo) in Open WebUI's database |
 | `check-admin-exists.py` | PC (called by `setup-pc.ps1`) | Checks whether the Open WebUI admin account has been created yet |
 | `setup-client.sh` | Client | Installs Aider, configures it to use the PC over LAN |
 | `aider-retry.sh` | Client | Runs an Aider request with connectivity preflight + fresh-retry-on-failure |
@@ -289,4 +304,8 @@ browser chat: nothing to clone at all — just open the URL from any device.
 
 - [x] Browser-based interface (Open WebUI, with automated per-model config)
 - [ ] Image support in chat (vision model is wired up; UI walkthrough/polish TBD)
+- [x] Web search (DuckDuckGo, no API key needed - see [Browser chat](#browser-chat))
+- [ ] Image generation (parked - needs a separate backend like AUTOMATIC1111/ComfyUI
+      plus another multi-GB model, and real risk of VRAM contention with the LLMs
+      already running on a 12GB card)
 - [ ] More features as we go
