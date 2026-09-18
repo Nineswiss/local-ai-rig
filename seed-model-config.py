@@ -20,6 +20,10 @@ import time
 
 MODEL_CONFIG = {
     "qwen2.5vl:7b": {
+        # The description (below) only shows if you click a model's (i)
+        # icon - easy to miss. Putting the emoji in the display name means
+        # it shows right in the model picker list, no click needed.
+        "name": "qwen2.5vl:7b \U0001F4F7",
         "params": {"function_calling": "legacy"},
         "meta": {
             "description": "\U0001F4F7 Vision-capable — can see and describe uploaded images.",
@@ -77,29 +81,32 @@ def main():
     skipped = []
 
     for model_id, cfg in MODEL_CONFIG.items():
-        cur.execute("SELECT params, meta FROM model WHERE id = ?", (model_id,))
+        cur.execute("SELECT name, params, meta FROM model WHERE id = ?", (model_id,))
         existing = cur.fetchone()
 
         if existing:
-            params = json.loads(existing[0]) if existing[0] else {}
-            meta = json.loads(existing[1]) if existing[1] else {}
+            existing_name, existing_params, existing_meta = existing
+            params = json.loads(existing_params) if existing_params else {}
+            meta = json.loads(existing_meta) if existing_meta else {}
+            name = cfg.get("name", existing_name)
         else:
             params = {}
             meta = dict(DEFAULT_META)
+            name = cfg.get("name", model_id)
 
         params.update(cfg.get("params", {}))
         meta.update(cfg.get("meta", {}))
 
         if existing:
             cur.execute(
-                "UPDATE model SET params = ?, meta = ?, updated_at = ? WHERE id = ?",
-                (json.dumps(params), json.dumps(meta), now, model_id),
+                "UPDATE model SET name = ?, params = ?, meta = ?, updated_at = ? WHERE id = ?",
+                (name, json.dumps(params), json.dumps(meta), now, model_id),
             )
         else:
             cur.execute(
                 "INSERT INTO model (id, user_id, base_model_id, name, params, meta, "
                 "updated_at, created_at, is_active) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, 1)",
-                (model_id, user_id, model_id, json.dumps(params), json.dumps(meta), now, now),
+                (model_id, user_id, name, json.dumps(params), json.dumps(meta), now, now),
             )
         applied.append(model_id)
 
