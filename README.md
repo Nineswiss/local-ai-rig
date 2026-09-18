@@ -112,6 +112,18 @@ admin UI by hand:
 Re-running `setup-pc.ps1` re-applies these settings — safe to do any time,
 including after pulling a different model.
 
+## Stopping the services
+
+```powershell
+.\stop-pc.ps1              # stop both, shows status before/after
+.\stop-pc.ps1 -OllamaOnly  # leave Open WebUI running
+.\stop-pc.ps1 -WebUIOnly   # leave Ollama running (Aider still works)
+```
+
+Useful for freeing GPU VRAM when you're not using AI, or for a clean
+restart after a config change. Safe to run any time, whether or not
+either is actually running. Re-run `setup-pc.ps1` to start them again.
+
 ## Choosing a model
 
 12GB VRAM comfortably fits a 14B model at 4-bit quant, fully GPU-resident.
@@ -251,6 +263,7 @@ browser chat: nothing to clone at all — just open the URL from any device.
 | File | Runs on | Purpose |
 |---|---|---|
 | `setup-pc.ps1` | PC | One-shot setup: Ollama, models, Open WebUI, firewall rules |
+| `stop-pc.ps1` | PC | Stops Ollama/Open WebUI (frees GPU VRAM, clean restarts) |
 | `seed-model-config.py` | PC (called by `setup-pc.ps1`) | Writes known-good per-model settings into Open WebUI's database |
 | `check-admin-exists.py` | PC (called by `setup-pc.ps1`) | Checks whether the Open WebUI admin account has been created yet |
 | `setup-client.sh` | Client | Installs Aider, configures it to use the PC over LAN |
