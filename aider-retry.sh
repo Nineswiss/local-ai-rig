@@ -26,6 +26,18 @@ fi
 
 export OLLAMA_API_BASE="${OLLAMA_API_BASE:-http://adampc.local:11434}"
 
+# Fail fast with a clear reason instead of burning through $MAX_ATTEMPTS
+# retries (each potentially several minutes) against a PC that was never
+# reachable to begin with.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -x "$SCRIPT_DIR/check-connection.sh" ]; then
+  if ! "$SCRIPT_DIR/check-connection.sh" >/tmp/aider-retry-preflight.log 2>&1; then
+    echo "Preflight check failed - can't reach the PC/Ollama. Details:"
+    cat /tmp/aider-retry-preflight.log
+    exit 1
+  fi
+fi
+
 # Force a git repo scoped to THIS directory before Aider ever runs. Without
 # this, if any ANCESTOR directory happens to be a git repo (e.g. because an
 # earlier Aider session was accidentally launched from there and

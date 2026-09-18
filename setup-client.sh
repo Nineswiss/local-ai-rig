@@ -53,12 +53,17 @@ else
 fi
 
 # --- 2. Verify the PC is reachable ---
-echo "Checking Ollama at http://${PC_HOST}:11434 ..."
-if curl -s -m 5 "http://${PC_HOST}:11434/api/version" >/dev/null; then
-  echo "Reachable."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -x "$SCRIPT_DIR/check-connection.sh" ]; then
+  "$SCRIPT_DIR/check-connection.sh" "$PC_HOST" || echo "Continuing anyway; fix connectivity before use." >&2
 else
-  echo "WARNING: could not reach http://${PC_HOST}:11434 — is setup-pc.ps1 done running there," >&2
-  echo "and are both machines on the same LAN? Continuing anyway; fix connectivity before use." >&2
+  echo "Checking Ollama at http://${PC_HOST}:11434 ..."
+  if curl -s -m 5 "http://${PC_HOST}:11434/api/version" >/dev/null; then
+    echo "Reachable."
+  else
+    echo "WARNING: could not reach http://${PC_HOST}:11434 — is setup-pc.ps1 done running there," >&2
+    echo "and are both machines on the same LAN? Continuing anyway; fix connectivity before use." >&2
+  fi
 fi
 
 # --- 3. Persist OLLAMA_API_BASE in the shell profile ---
