@@ -60,3 +60,8 @@ Start-Sleep -Seconds 2
 Write-Host ""
 Write-Host "Ollama:      $(Get-ServiceStatus 'ollama')"
 Write-Host "Open WebUI:  $(Get-ServiceStatus 'open-webui')"
+
+$hostname = $env:COMPUTERNAME.ToLower()
+Write-Host ""
+Write-Host "Browser chat:  http://${hostname}.local:8080" -ForegroundColor Cyan
+Write-Host "Aider/Ollama:  http://${hostname}.local:11434" -ForegroundColor Cyan
