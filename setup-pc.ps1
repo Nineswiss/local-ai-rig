@@ -48,6 +48,26 @@ function Wait-ForHttp {
     return $false
 }
 
+function Start-DetachedProcess {
+    # Start-Process launches a child inside the CALLING session's Job Object.
+    # That's invisible when you run this script at a real console - but over
+    # SSH (which the workmate/README doesn't rule out, and which we use for
+    # remote setup), Windows OpenSSH tears down that job the moment the SSH
+    # session closes, silently killing every "detached" child in it -
+    # -WindowStyle Hidden only hides the window, it doesn't change job
+    # membership. Confirmed by testing: Ollama and Open WebUI both died the
+    # instant the launching SSH connection ended. Creating the process via
+    # WMI instead makes it a child of the WMI provider host, not our job, so
+    # it survives the session that started it closing.
+    param([string]$FilePath, [string]$ArgumentList = "")
+    $cmdLine = "`"$FilePath`" $ArgumentList".TrimEnd()
+    $result = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmdLine }
+    if ($result.ReturnValue -ne 0) {
+        throw "Failed to start '$FilePath' (WMI Win32_Process.Create returned $($result.ReturnValue))"
+    }
+    return $result.ProcessId
+}
+
 Write-Host "== local-ai-rig: PC setup ==" -ForegroundColor Cyan
 
 # --- 1. Install Ollama ---
@@ -81,7 +101,8 @@ if (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) {
 Write-Host "Restarting Ollama so it picks up the LAN binding..."
 Get-Process ollama -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
-Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Hidden
+$ollamaPath = (Get-Command ollama).Source
+Start-DetachedProcess -FilePath $ollamaPath -ArgumentList "serve" | Out-Null
 
 if (-not (Wait-ForHttp "http://127.0.0.1:11434/api/version" 30)) {
     Write-Host "WARNING: Ollama didn't respond within 30s. Continuing anyway -" -ForegroundColor Yellow
@@ -147,7 +168,7 @@ if (-not $SkipWebUI) {
 
     Get-Process open-webui -ErrorAction SilentlyContinue | Stop-Process -Force
     Start-Sleep -Seconds 1
-    Start-Process -FilePath $webuiExe -ArgumentList "serve --host 0.0.0.0 --port 8080" -WindowStyle Hidden
+    Start-DetachedProcess -FilePath $webuiExe -ArgumentList "serve --host 0.0.0.0 --port 8080" | Out-Null
 
     Write-Host "Waiting for Open WebUI to start (can take ~1-2 min on first run, it downloads a small embedding model)..."
     if (-not (Wait-ForHttp "http://127.0.0.1:8080/" 180)) {
@@ -180,7 +201,7 @@ if (-not $SkipWebUI) {
     & "$venvDir\Scripts\python.exe" $seedScript $dbPath
 
     Write-Host "Restarting Open WebUI..."
-    Start-Process -FilePath $webuiExe -ArgumentList "serve --host 0.0.0.0 --port 8080" -WindowStyle Hidden
+    Start-DetachedProcess -FilePath $webuiExe -ArgumentList "serve --host 0.0.0.0 --port 8080" | Out-Null
     Wait-ForHttp "http://127.0.0.1:8080/" 60 | Out-Null
 }
 
