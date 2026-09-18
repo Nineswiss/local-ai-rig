@@ -4,19 +4,22 @@
 #
 # Usage (PowerShell, does not need to be Administrator):
 #   .\setup-pc.ps1
-#   .\setup-pc.ps1 -Model qwen2.5:32b
+#   .\setup-pc.ps1 -Model qwen2.5:14b -BigModel devstral:24b
 #
 # What it does:
 #   1. Installs Ollama via winget (skips if already installed)
-#   2. Sets OLLAMA_HOST as a persistent user env var, so Ollama binds to your
-#      LAN (0.0.0.0:11434) instead of localhost-only on every future start
+#   2. Sets OLLAMA_HOST and OLLAMA_CONTEXT_LENGTH as persistent user env
+#      vars, so Ollama binds to your LAN (0.0.0.0:11434) with a real context
+#      window instead of localhost-only + a tiny auto-sized default
 #   3. Opens a Windows Firewall rule for port 11434, so other machines on
 #      your LAN can actually reach it
-#   4. Pulls the model
+#   4. Pulls both a fast default model and a bigger one for complex,
+#      multi-file requests (see README for why you want both)
 #   5. Prints the URL your other machines should use to connect
 
 param(
-    [string]$Model = "qwen2.5:14b"
+    [string]$Model = "qwen2.5:14b",
+    [string]$BigModel = "devstral:24b"
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,10 +34,15 @@ if (Get-Command ollama -ErrorAction SilentlyContinue) {
     winget install --id Ollama.Ollama --source winget --accept-source-agreements --accept-package-agreements --silent
 }
 
-# --- 2. Persistent LAN binding ---
-Write-Host "Setting OLLAMA_HOST=0.0.0.0:11434 (persistent, user-level)..."
+# --- 2. Persistent LAN binding + real context window ---
+# The default context window is auto-sized from free VRAM and ends up far
+# too small (often 4096 tokens) for anything beyond trivial single-file
+# edits - large multi-file responses get silently cut off mid-generation.
+Write-Host "Setting OLLAMA_HOST=0.0.0.0:11434 and OLLAMA_CONTEXT_LENGTH=16384 (persistent, user-level)..."
 [Environment]::SetEnvironmentVariable("OLLAMA_HOST", "0.0.0.0:11434", "User")
+[Environment]::SetEnvironmentVariable("OLLAMA_CONTEXT_LENGTH", "16384", "User")
 $env:OLLAMA_HOST = "0.0.0.0:11434"
+$env:OLLAMA_CONTEXT_LENGTH = "16384"
 
 # --- 3. Firewall rule ---
 $ruleName = "Ollama LAN (local-ai-rig)"
@@ -52,8 +60,10 @@ Start-Sleep -Seconds 2
 Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Hidden
 Start-Sleep -Seconds 3
 
-Write-Host "Pulling model: $Model (this can take a while on first run)..."
+Write-Host "Pulling models: $Model (fast, everyday edits) and $BigModel (complex multi-file requests)..."
+Write-Host "This can take a while on first run - together they're roughly 20GB."
 ollama pull $Model
+ollama pull $BigModel
 
 # --- 5. Done ---
 $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' -and $_.IPAddress -notmatch '^169\.254\.' } | Select-Object -First 1).IPAddress

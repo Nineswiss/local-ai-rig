@@ -20,9 +20,11 @@ even with WAN internet down.
 .\setup-pc.ps1
 ```
 
-This installs Ollama, binds it to your LAN, opens the firewall for it, and
-pulls `qwen2.5:14b` (override with `.\setup-pc.ps1 -Model qwen2.5:32b` if
-you have more VRAM to spare — see [Choosing a model](#choosing-a-model)).
+Installs Ollama, binds it to your LAN with a proper context window (see
+[Known issues](#known-issues)), opens the firewall, and pulls **two**
+models — a fast one for everyday edits and a bigger one for complex,
+multi-file requests (see [Choosing a model](#choosing-a-model) for why you
+want both). Override either with `.\setup-pc.ps1 -Model ... -BigModel ...`.
 
 The script prints the PC's LAN IP at the end. You'll need it for step 2.
 
@@ -33,44 +35,68 @@ The script prints the PC's LAN IP at the end. You'll need it for step 2.
 # e.g. ./setup-client.sh 192.168.1.3
 ```
 
-This installs Aider, points it at the PC over your LAN, and configures it
-to auto-approve file edits without prompting per file (`yes-always`) and
-skip the colorized formatting (`pretty: false`) — edit
-`~/.aider.conf.yml` if you'd rather review each change first (drop
-`yes-always`).
+Installs Aider, points it at the PC over your LAN, and sets up two commands:
+
+- `aider` — the fast model, `yes-always` (no per-file confirmation prompts)
+- `aider-big` — the bigger model, for new projects / big scaffolds
+
+Edit `~/.aider.conf.yml` if you'd rather review each change before it's
+applied (drop `yes-always`).
 
 **3. Use it:**
 
 ```bash
 cd your-project
-aider
+aider          # quick edits to existing files
+aider-big      # starting something new, multiple files at once
 ```
 
 ## Choosing a model
 
-12GB VRAM comfortably fits `qwen2.5:14b` at 4-bit quant, fully GPU-resident.
-More VRAM, more headroom for a bigger/smarter model — but bigger isn't
-automatically better here:
+12GB VRAM comfortably fits a 14B model at 4-bit quant, fully GPU-resident.
+We tested this extensively, so this isn't a guess:
 
-- **Use plain `qwen2.5` or `llama3.1`, not `-coder` variants.** The coder
-  variants return tool-call-shaped text output the harness can't always act
-  on reliably — plain `qwen2.5:14b` was specifically verified (twice, with
-  real file create + edit tasks) to work correctly with Aider.
-- Aider doesn't need native function-calling like some agent frameworks do
-  — it works off diffs in the model's text output, which is why it's more
-  forgiving of smaller/local models than more complex tool-calling agents.
+- **For single, well-scoped edits to existing files**, any reasonable local
+  14B model works reliably — `qwen2.5:14b` was verified repeatedly. Fast,
+  fully GPU-resident.
+- **For complex, multi-file requests** (scaffold a whole app, wire up
+  several new files at once), 14-16B models — including `-coder` variants
+  — consistently struggled: they'd narrate a "how to run this" section
+  with example shell commands, or otherwise break Aider's strict file-edit
+  parser somewhere in a long response, even though the actual code content
+  was usually fine. This wasn't fixed by prompt tweaks, forcing a different
+  edit format, or Aider's architect/editor split mode — we tried all three
+  before concluding it's a real ceiling for this model class on big
+  requests specifically.
+- **`devstral:24b`** — a model Mistral specifically built for *agentic*
+  coding (not just code completion) — fixed this outright, on the first
+  try, verified with a real multi-file scaffold (React + Vite frontend,
+  Node/Express backend, MongoDB, auth routes — 14 files, all correct,
+  consistent naming across routes/controllers/models). It's 14GB, so on a
+  12GB card it partially spills to CPU/system RAM — slower than the fully
+  GPU-resident 14B models, but reliable enough to be worth the wait for
+  anything more than a single-file edit.
+- Don't assume "coder" variants beat general instruct models for *agentic*
+  editing specifically — in our testing, `qwen2.5-coder:14b` also
+  intermittently refused login/auth-related requests outright (a
+  false-positive safety trigger, not a capability gap), on top of the same
+  format-adherence issues as the non-coder model.
 
 ## Known issues
 
-- **Ollama can die on a network blip or PC reboot.** `setup-pc.ps1` sets a
-  persistent LAN-binding env var, but if Ollama's own background process
-  dies (e.g. mid-driver-update reboot), just re-run `setup-pc.ps1` — it's
-  idempotent and safe to run again.
-- If `aider` can't reach Ollama, check: both machines on the same LAN, the
-  PC's firewall rule exists (`setup-pc.ps1` creates one named
-  `Ollama LAN (local-ai-rig)`), and `$OLLAMA_API_BASE` is actually set in
-  your current terminal (`echo $OLLAMA_API_BASE` — open a **new** terminal
-  after running `setup-client.sh` if it's empty).
+- **Ollama's default context window is too small.** It auto-sizes from
+  free VRAM and often lands around 4096 tokens — enough for a single-file
+  edit, not for a big multi-file response, which then gets silently cut
+  off mid-generation. `setup-pc.ps1` sets `OLLAMA_CONTEXT_LENGTH=16384`
+  persistently to fix this.
+- **Ollama can die on a network blip or PC reboot.** If it stops
+  responding, just re-run `setup-pc.ps1` — it's idempotent and safe to run
+  again.
+- If `aider`/`aider-big` can't reach Ollama, check: both machines on the
+  same LAN, the PC's firewall rule exists (`setup-pc.ps1` creates one
+  named `Ollama LAN (local-ai-rig)`), and `$OLLAMA_API_BASE` is actually
+  set in your current terminal (`echo $OLLAMA_API_BASE` — open a **new**
+  terminal after running `setup-client.sh` if it's empty).
 
 ## Roadmap
 

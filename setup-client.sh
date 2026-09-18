@@ -5,14 +5,15 @@
 # running Ollama (set up separately via setup-pc.ps1).
 #
 # Usage:
-#   ./setup-client.sh <pc-ip> [model]
+#   ./setup-client.sh <pc-ip> [model] [big-model]
 #   ./setup-client.sh 192.168.1.3
-#   ./setup-client.sh 192.168.1.3 qwen2.5:32b
+#   ./setup-client.sh 192.168.1.3 qwen2.5:14b devstral:24b
 
 set -euo pipefail
 
 PC_IP="${1:-}"
 MODEL="${2:-qwen2.5:14b}"
+BIG_MODEL="${3:-devstral:24b}"
 
 if [ -z "$PC_IP" ]; then
   echo "Usage: $0 <pc-ip> [model]"
@@ -62,11 +63,14 @@ esac
 
 MARKER="# local-ai-rig"
 if [ -f "$PROFILE" ] && grep -q "$MARKER" "$PROFILE" 2>/dev/null; then
-  # Replace the existing line so re-running with a different IP updates it
+  # Remove previous local-ai-rig lines so re-running updates them cleanly
   sed -i.bak "/$MARKER/d" "$PROFILE"
 fi
-echo "export OLLAMA_API_BASE=http://${PC_IP}:11434 $MARKER" >> "$PROFILE"
-echo "Added OLLAMA_API_BASE to $PROFILE"
+{
+  echo "export OLLAMA_API_BASE=http://${PC_IP}:11434 $MARKER"
+  echo "alias aider-big=\"aider --model ollama_chat/${BIG_MODEL}\" $MARKER"
+} >> "$PROFILE"
+echo "Added OLLAMA_API_BASE and the aider-big alias to $PROFILE"
 
 # --- 4. Aider config ---
 CONF="$HOME/.aider.conf.yml"
@@ -79,7 +83,8 @@ echo "Wrote $CONF"
 
 echo ""
 echo "== Done =="
-echo "Open a NEW terminal (so the env var loads), cd into a project, and run:"
-echo "  aider"
+echo "Open a NEW terminal (so the env var and alias load), cd into a project, and run:"
+echo "  aider          # fast model (${MODEL}) - everyday single-file edits"
+echo "  aider-big      # bigger model (${BIG_MODEL}) - new projects, multi-file scaffolds"
 echo ""
-echo "It'll talk to ${MODEL} on ${PC_IP}'s GPU automatically."
+echo "Both talk to ${PC_IP}'s GPU automatically. See README for which to use when."
