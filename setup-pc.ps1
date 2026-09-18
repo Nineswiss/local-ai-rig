@@ -67,15 +67,25 @@ ollama pull $BigModel
 
 # --- 5. Done ---
 $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' -and $_.IPAddress -notmatch '^169\.254\.' } | Select-Object -First 1).IPAddress
+$hostname = $env:COMPUTERNAME
 
 Write-Host ""
 Write-Host "== Done ==" -ForegroundColor Green
 Write-Host "Ollama is running and reachable on your LAN at:"
-Write-Host "  http://${ip}:11434" -ForegroundColor Cyan
+Write-Host "  http://$($hostname.ToLower()).local:11434  <- use this one, see note below" -ForegroundColor Cyan
+Write-Host "  http://${ip}:11434                          (works today, but this IP can change)"
+Write-Host ""
+Write-Host "IMPORTANT: use the .local hostname above, not the raw IP, in setup-client.sh"
+Write-Host "and anywhere else you point at this machine. The IP is DHCP-assigned and"
+Write-Host "WILL change eventually (router reboot, lease expiry) - anything hardcoded"
+Write-Host "to it breaks silently when that happens. The .local hostname (via mDNS,"
+Write-Host "already built into Windows, no setup needed) keeps resolving correctly"
+Write-Host "no matter what IP this machine gets. Verify it works from your other"
+Write-Host "machine with: ping $($hostname.ToLower()).local"
 Write-Host ""
 Write-Host "Note: OLLAMA_HOST is now set persistently, but GUI apps (like Ollama's"
 Write-Host "tray icon, if it auto-starts on login) only pick up env var changes on"
 Write-Host "their next launch. If Ollama doesn't come back up LAN-bound after a"
 Write-Host "reboot, just re-run this script."
 Write-Host ""
-Write-Host "On your client machine (Mac/Linux), run setup-client.sh with this IP."
+Write-Host "On your client machine (Mac/Linux), run setup-client.sh with the .local hostname."

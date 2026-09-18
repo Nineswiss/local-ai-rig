@@ -26,13 +26,15 @@ models — a fast one for everyday edits and a bigger one for complex,
 multi-file requests (see [Choosing a model](#choosing-a-model) for why you
 want both). Override either with `.\setup-pc.ps1 -Model ... -BigModel ...`.
 
-The script prints the PC's LAN IP at the end. You'll need it for step 2.
+The script prints the PC's `.local` hostname at the end (and its current IP,
+for reference) — **use the hostname, not the IP**, in step 2. See
+[Known issues](#known-issues) for why.
 
 **2. On your client machine** (the one with your project files):
 
 ```bash
-./setup-client.sh <pc-ip>
-# e.g. ./setup-client.sh 192.168.1.3
+./setup-client.sh <pc-host>
+# e.g. ./setup-client.sh adampc.local
 ```
 
 Installs Aider, points it at the PC over your LAN, and sets up two commands:
@@ -122,6 +124,19 @@ directory for review if all attempts fail.
 
 ## Known issues
 
+- **Use the PC's `.local` hostname, never its raw LAN IP.** The IP is
+  DHCP-assigned by your router and *will* change eventually (router reboot,
+  lease expiry, the PC reconnecting after sleep) — anything with the IP
+  hardcoded (`OLLAMA_API_BASE`, `aider-retry.sh`'s default, etc.) then
+  breaks silently, with no obvious error pointing at the real cause.
+  `<hostname>.local` resolves via mDNS, which is already built into both
+  Windows and macOS — no setup needed — and keeps resolving correctly no
+  matter what IP the PC currently has. `setup-pc.ps1` prints this hostname
+  for you; `setup-client.sh` and `aider-retry.sh` both expect it (an IP
+  still works, it's just one router reboot away from silently breaking).
+  Verify yours resolves with `ping <hostname>.local` before relying on it —
+  it's near-universal on home networks but not guaranteed on locked-down
+  corporate/guest networks.
 - **Ollama's default context window is too small.** It auto-sizes from
   free VRAM and often lands around 4096 tokens — enough for a single-file
   edit, not for a big multi-file response, which then gets silently cut

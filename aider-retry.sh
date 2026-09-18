@@ -24,7 +24,7 @@ if [ -z "$MESSAGE" ]; then
   exit 1
 fi
 
-export OLLAMA_API_BASE="${OLLAMA_API_BASE:-http://192.168.1.3:11434}"
+export OLLAMA_API_BASE="${OLLAMA_API_BASE:-http://adampc.local:11434}"
 
 # Force a git repo scoped to THIS directory before Aider ever runs. Without
 # this, if any ANCESTOR directory happens to be a git repo (e.g. because an
