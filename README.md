@@ -112,9 +112,23 @@ admin UI by hand:
 Re-running `setup-pc.ps1` re-applies these settings — safe to do any time,
 including after pulling a different model.
 
-## Stopping the services
+## Starting and stopping the services
+
+**Easiest:** double-click `start-pc.bat` / `stop-pc.bat` in File Explorer.
+No terminal needed — a window opens showing what happened, and waits for
+a key press so you can read it before it closes.
+
+Useful for freeing GPU VRAM when you're not using AI, or a clean restart
+after a config change. Both are safe to run any time — starting when
+already running (or stopping when already stopped) just says so and does
+nothing. Unlike `setup-pc.ps1`, `start-pc.bat` doesn't reinstall anything,
+pull models, or need internet — it just turns the already-installed
+services back on, so it works fine offline.
+
+From PowerShell, the same thing with more control:
 
 ```powershell
+.\start-pc.ps1             # start both, shows status before/after
 .\stop-pc.ps1              # stop both, shows status before/after
 .\stop-pc.ps1 -OllamaOnly  # leave Open WebUI running
 .\stop-pc.ps1 -WebUIOnly   # leave Ollama running (Aider still works)
@@ -263,7 +277,8 @@ browser chat: nothing to clone at all — just open the URL from any device.
 | File | Runs on | Purpose |
 |---|---|---|
 | `setup-pc.ps1` | PC | One-shot setup: Ollama, models, Open WebUI, firewall rules |
-| `stop-pc.ps1` | PC | Stops Ollama/Open WebUI (frees GPU VRAM, clean restarts) |
+| `start-pc.ps1` / `start-pc.bat` | PC | Starts Ollama/Open WebUI if not already running (no install/network needed) |
+| `stop-pc.ps1` / `stop-pc.bat` | PC | Stops Ollama/Open WebUI (frees GPU VRAM, clean restarts) |
 | `seed-model-config.py` | PC (called by `setup-pc.ps1`) | Writes known-good per-model settings into Open WebUI's database |
 | `check-admin-exists.py` | PC (called by `setup-pc.ps1`) | Checks whether the Open WebUI admin account has been created yet |
 | `setup-client.sh` | Client | Installs Aider, configures it to use the PC over LAN |
