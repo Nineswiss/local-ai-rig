@@ -142,6 +142,32 @@ specifically tested how gracefully the model handles that failure, so
 don't assume it'll clearly tell you rather than answering from its own
 (possibly outdated) knowledge instead.
 
+## Image generation
+
+Not wired into Open WebUI's chat — deliberately. `qwen2.5:14b` alone
+already uses ~10GB of a 12GB card, so running an LLM and a FLUX-class
+image model at the same time doesn't really work, and Open WebUI has no
+real separation between "chat" and "image" beyond a per-message toggle in
+the same conversation (there's no standalone image section in its UI —
+getting one would mean forking and hand-rebuilding its frontend on every
+update, a much bigger commitment than anything else here).
+
+Instead, `image-gate.py` is a tiny standalone page (stdlib Python, nothing
+to install) that answers one question: is the GPU actually free right
+now? It polls Ollama's own `/api/ps` and shows a waiting message while a
+model is loaded, then reveals a link to ComfyUI once it's clear:
+
+```powershell
+.\image-gate.bat    # double-click, or run from PowerShell
+```
+
+Opens at `http://localhost:8189` and checks every few seconds. ComfyUI
+itself (assumed to already be installed — this repo doesn't set it up)
+is a normal desktop app; open it yourself as usual once the gate says
+it's clear. Ollama unloads idle models automatically after a few
+minutes, so in practice you don't need to manually stop anything —
+just wait for the page to go green.
+
 ## Starting and stopping the services
 
 **Easiest:** double-click `start-pc.bat` / `stop-pc.bat` in File Explorer.
@@ -309,6 +335,7 @@ browser chat: nothing to clone at all — just open the URL from any device.
 | `setup-pc.ps1` | PC | One-shot setup: Ollama, models, Open WebUI, firewall rules |
 | `start-pc.ps1` / `start-pc.bat` | PC | Starts Ollama/Open WebUI if not already running (no install/network needed) |
 | `stop-pc.ps1` / `stop-pc.bat` | PC | Stops Ollama/Open WebUI (frees GPU VRAM, clean restarts) |
+| `image-gate.py` / `image-gate.bat` | PC | Standalone page: waits for the GPU to free up, then links to ComfyUI |
 | `seed-model-config.py` | PC (called by `setup-pc.ps1`) | Writes known-good per-model settings into Open WebUI's database |
 | `enable-web-search.py` | PC (called by `setup-pc.ps1`) | Turns on web search (DuckDuckGo) in Open WebUI's database |
 | `check-admin-exists.py` | PC (called by `setup-pc.ps1`) | Checks whether the Open WebUI admin account has been created yet |
@@ -321,7 +348,7 @@ browser chat: nothing to clone at all — just open the URL from any device.
 - [x] Browser-based interface (Open WebUI, with automated per-model config)
 - [ ] Image support in chat (vision model is wired up; UI walkthrough/polish TBD)
 - [x] Web search (DuckDuckGo, no API key needed - see [Browser chat](#browser-chat))
-- [ ] Image generation (parked - needs a separate backend like AUTOMATIC1111/ComfyUI
-      plus another multi-GB model, and real risk of VRAM contention with the LLMs
-      already running on a 12GB card)
+- [x] Image generation (not wired into chat - see [Image generation](#image-generation).
+      `image-gate.py` gates access to an already-installed ComfyUI by GPU
+      availability instead)
 - [ ] More features as we go
