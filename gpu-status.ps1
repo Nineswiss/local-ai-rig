@@ -1,5 +1,8 @@
-# Reports whether Forge, Ollama (local-ai-rig), or anything else has an
-# active compute context on this PC's one shared GPU.
+# Reports whether Forge or Ollama (local-ai-rig) has an active compute
+# context on this PC's one shared GPU. Deliberately doesn't try to flag
+# "anything else" - the only useful thing to tell a user is "the other app
+# you might be about to compete with is busy right now," not "Notepad has
+# a GPU handle open," which is true almost constantly and isn't actionable.
 #
 # Per-process VRAM isn't usable here: nvidia-smi's own used_memory field
 # comes back "[N/A]" for every process on this card (confirmed live, incl.
@@ -18,25 +21,8 @@ $utilizationPct = [int]$gpuParts[0].Trim()
 $usedMB = [int]$gpuParts[1].Trim()
 $totalMB = [int]$gpuParts[2].Trim()
 
-# Idle desktop/system processes that hold a GPU compute context just for
-# normal compositing - always present, never meaningfully "using" the GPU
-# for this purpose. Best-effort, not exhaustive: an unrecognized app here
-# just means an occasional over-cautious warning, not a dangerous miss.
-$harmless = @(
-    'dwm.exe', 'explorer.exe', 'LogonUI.exe', 'ShellExperienceHost.exe',
-    'StartMenuExperienceHost.exe', 'SearchHost.exe', 'TextInputHost.exe',
-    'ShellHost.exe', 'CrossDeviceResume.exe', 'WUDFHost.exe',
-    'msedgewebview2.exe', 'logioptionsplus_agent.exe',
-    'Creative Cloud UI Helper.exe', 'EpicGamesLauncher.exe',
-    'EpicWebHelper.exe', 'EOSOverlayRenderer-Win64-Shipping.exe',
-    'WindowsTerminal.exe', 'Avid Link.exe', 'svchost.exe', 'csrss.exe',
-    'winlogon.exe', 'SystemSettings.exe', 'ApplicationFrameHost.exe',
-    'RuntimeBroker.exe'
-)
-
 $forgeActive = $false
 $ollamaActive = $false
-$otherProcesses = @()
 
 $raw = & nvidia-smi --query-compute-apps=pid,process_name --format=csv,noheader
 
@@ -48,14 +34,11 @@ foreach ($line in $raw) {
 
     $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$procId" -ErrorAction SilentlyContinue
     $cmdLine = if ($proc) { $proc.CommandLine } else { '' }
-    $name = if ($proc) { $proc.Name } else { $parts[1].Trim() }
 
     if ($cmdLine -match 'webui_forge_neo') {
         $forgeActive = $true
     } elseif ($cmdLine -match 'ollama') {
         $ollamaActive = $true
-    } elseif ($harmless -notcontains $name) {
-        if ($otherProcesses -notcontains $name) { $otherProcesses += $name }
     }
 }
 
@@ -65,6 +48,4 @@ foreach ($line in $raw) {
     totalMB        = $totalMB
     forgeActive    = $forgeActive
     ollamaActive   = $ollamaActive
-    otherActive    = $otherProcesses.Count -gt 0
-    otherProcesses = $otherProcesses
 } | ConvertTo-Json -Compress

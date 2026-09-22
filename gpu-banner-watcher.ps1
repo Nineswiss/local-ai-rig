@@ -3,8 +3,9 @@
 # copy of the one in forge-ui - they're independent repos, so this is a
 # deliberate small duplication rather than a cross-repo dependency) and
 # keeps an Open WebUI banner in sync - visible at the top of the chat UI
-# whenever Forge (forge-ui) or anything else unrecognized has an active
-# GPU context, so a slow/failed Ollama response doesn't come as a surprise.
+# whenever Forge (forge-ui) has an active GPU context, so a slow/failed
+# Ollama response doesn't come as a surprise. Deliberately only Forge, not
+# "anything else with a GPU handle open" - that's noise nobody can act on.
 # Direct motivation: forge-ui's git history, 2026-09-22 - GPU-accelerated
 # Ollama silently pushed VRAM to 98% during a real Forge generation. The
 # same contention risk runs the other way too; this is that same warning,
@@ -78,21 +79,14 @@ while ($true) {
 
     try {
         $status = & powershell -NoProfile -ExecutionPolicy Bypass -File $GpuStatusScript | ConvertFrom-Json
-        # From Ollama's side, Ollama itself is "us" - Forge or anything
-        # else unrecognized counts as contention.
-        $busy = $status.forgeActive -or $status.otherActive
+        # Only Forge, deliberately - not "anything else with a GPU handle
+        # open" (that's noise a user can't act on, and undermines the one
+        # warning that's actually useful: don't be surprised if chat is
+        # slow right now).
+        $busy = $status.forgeActive
 
         if ($busy -ne $lastBusy) {
-            $usedGb = [math]::Round($status.usedMB / 1024, 1)
-            $totalGb = [math]::Round($status.totalMB / 1024)
-            $who = if ($status.forgeActive -and $status.otherActive) {
-                'Forge (forge-ui) and another app are'
-            } elseif ($status.forgeActive) {
-                'Forge (forge-ui) is'
-            } else {
-                "$($status.otherProcesses[0]) is"
-            }
-            $message = "GPU busy: $who active - ${usedGb}/${totalGb}GB VRAM in use, responses may be slower"
+            $message = 'Forge is generating an image or video right now - chat responses may be slower or fail'
             Set-Banner -ApiKey $apiKey -Busy $busy -Message $message
             Write-Host "GPU busy: $busy ($message)" -ForegroundColor Cyan
             $lastBusy = $busy

@@ -199,11 +199,16 @@ either is actually running. Re-run `setup-pc.ps1` to start them again.
 This PC's one GPU is shared with [forge-ui](https://github.com/Nineswiss/forge-ui)
 (image/video generation) - if both run at once, Ollama gets slower or
 outright fails, silently, with no obvious reason why. `gpu-banner-watcher.ps1`
-watches for that and shows a warning banner at the top of the Open WebUI
-chat UI whenever Forge (or anything else unrecognized) has an active GPU
-context - started automatically by `start-pc.ps1`, stopped by `stop-pc.ps1`.
-It's a nicety layered on top, not a dependency - everything else here works
-fine if it's not running.
+watches for that and shows a warning banner ("Forge is generating an image
+or video right now - chat responses may be slower or fail") at the top of
+the Open WebUI chat UI whenever Forge specifically is busy - started
+automatically by `start-pc.ps1`, stopped by `stop-pc.ps1`. It's a nicety
+layered on top, not a dependency - everything else here works fine if it's
+not running.
+
+Deliberately only flags Forge, not "anything else with a GPU handle open" -
+nearly every desktop app holds one just for normal compositing (Notepad
+included), and surfacing that would just be noise with nothing to act on.
 
 **One manual step to enable it - API keys are off by default in Open
 WebUI:**
@@ -228,12 +233,6 @@ API error. One thing that looks like a bug but isn't: a banner that's set
 you load the page fresh (new tab, or navigate to the bare
 `http://<host>.local:8080` URL rather than an already-open chat) - Open
 WebUI only fetches banners on page load, not live.
-
-The banner can't say exactly how much VRAM the other app holds (this GPU/
-driver combo doesn't report that per-process - `gpu-status.ps1` has the
-details), only that something else has an active context and the GPU's
-overall usage - close enough to know to wait rather than needing an exact
-number.
 
 ## Choosing a model
 
