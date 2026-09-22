@@ -205,11 +205,29 @@ context - started automatically by `start-pc.ps1`, stopped by `stop-pc.ps1`.
 It's a nicety layered on top, not a dependency - everything else here works
 fine if it's not running.
 
-**One manual step to enable it:** log into Open WebUI, go to **Settings →
-Account → API Keys**, generate a key, and save it (no quotes, no trailing
-newline) to a file named `.openwebui-api-key` in this folder. Without that
-file the watcher just logs a warning and keeps retrying every 30s - nothing
-breaks, the banner just never appears.
+**One manual step to enable it - API keys are off by default in Open
+WebUI:**
+
+1. Log in as admin, go to **Admin Panel → Settings → Authentication**, turn
+   on the **API Keys** toggle, and Save. (Not the personal Settings →
+   General - this is the admin-only System section.)
+2. Now go to **Settings → Account** (personal settings this time) - an
+   **API keys** section has appeared. Generate one there (not the "JWT
+   Token" under Secrets a bit further down - that's your session token,
+   expires with your login, and isn't meant for this).
+3. Save the key (no quotes, no trailing newline - watch out for Notepad
+   silently adding a `.txt` extension if you "Save As" without selecting
+   "All Files") to a file named `.openwebui-api-key` in this folder.
+
+Without that file the watcher just logs a warning and keeps retrying every
+10s - nothing breaks, the banner just never appears. Check
+`gpu-banner-watcher.log` (also in this folder, gitignored) if it's still
+not showing up after adding the key - it logs every check, including any
+API error. One thing that looks like a bug but isn't: a banner that's set
+*while* you already have Open WebUI open in a tab won't appear there until
+you load the page fresh (new tab, or navigate to the bare
+`http://<host>.local:8080` URL rather than an already-open chat) - Open
+WebUI only fetches banners on page load, not live.
 
 The banner can't say exactly how much VRAM the other app holds (this GPU/
 driver combo doesn't report that per-process - `gpu-status.ps1` has the

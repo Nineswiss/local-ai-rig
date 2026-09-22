@@ -11,3 +11,6 @@ __pycache__/
 
 # Root PID of the running gpu-banner-watcher.ps1, written by start-pc.ps1.
 .gpu-banner-watcher.pid
+
+# Its output, for debugging Set-Banner/API-key failures.
+gpu-banner-watcher.log

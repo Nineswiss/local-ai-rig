@@ -47,7 +47,11 @@ if (-not $OllamaOnly) {
         $watcherPid = Get-Content $watcherPidFile -ErrorAction SilentlyContinue
         Remove-Item $watcherPidFile -ErrorAction SilentlyContinue
         if ($watcherPid -and (Get-Process -Id $watcherPid -ErrorAction SilentlyContinue)) {
-            Stop-Process -Id $watcherPid -Force
+            # /T, not Stop-Process: the tracked PID is a cmd.exe wrapper
+            # (started that way to redirect output to a log file), and
+            # Stop-Process on just that PID would orphan the powershell.exe
+            # child actually doing the work underneath it.
+            taskkill /F /T /PID $watcherPid | Out-Null
             Write-Host "Stopped GPU-banner watcher." -ForegroundColor Green
         }
     }

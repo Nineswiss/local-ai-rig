@@ -73,10 +73,23 @@ if (-not $webuiInstalled) {
 } elseif ($watcherRunning) {
     Write-Host "GPU-banner watcher already running." -ForegroundColor Yellow
 } else {
+    # Routed through cmd.exe to redirect output to a log file (proved its
+    # worth debugging this very feature - Set-Banner failures would
+    # otherwise be invisible, same as any other detached process here).
+    # That means the PID captured below is cmd.exe's, not the actual
+    # watcher - stop-pc.ps1 has to taskkill /T it for the same reason
+    # start.ps1/stop.ps1 do in forge-ui: Stop-Process on just this PID
+    # would kill cmd.exe and orphan the powershell.exe child underneath it.
     $watcherScript = Join-Path $PSScriptRoot "gpu-banner-watcher.ps1"
-    $watcherPid = Start-DetachedProcess -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$watcherScript`""
-    Set-Content -Path $watcherPidFile -Value $watcherPid
-    Write-Host "Started GPU-banner watcher." -ForegroundColor Green
+    $watcherLog = Join-Path $PSScriptRoot "gpu-banner-watcher.log"
+    $cmdLine = "cmd.exe /c powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$watcherScript`" > `"$watcherLog`" 2>&1"
+    $result = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmdLine; CurrentDirectory = $PSScriptRoot }
+    if ($result.ReturnValue -ne 0) {
+        Write-Host "Failed to start GPU-banner watcher (WMI returned $($result.ReturnValue))" -ForegroundColor Red
+    } else {
+        Set-Content -Path $watcherPidFile -Value $result.ProcessId
+        Write-Host "Started GPU-banner watcher (log: gpu-banner-watcher.log)." -ForegroundColor Green
+    }
 }
 
 Start-Sleep -Seconds 2
