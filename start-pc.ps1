@@ -46,14 +46,37 @@ if (Get-Process -Name "ollama" -ErrorAction SilentlyContinue) {
 }
 
 $webuiExe = Join-Path $PSScriptRoot ".openwebui-venv\Scripts\open-webui.exe"
+$webuiInstalled = Test-Path $webuiExe
 if (Get-Process -Name "open-webui" -ErrorAction SilentlyContinue) {
     Write-Host "Open WebUI already running." -ForegroundColor Yellow
-} elseif (-not (Test-Path $webuiExe)) {
+} elseif (-not $webuiInstalled) {
     Write-Host "Open WebUI isn't installed - run setup-pc.ps1 first." -ForegroundColor Red
 } else {
     $env:OLLAMA_BASE_URL = "http://127.0.0.1:11434"
     Start-DetachedProcess -FilePath $webuiExe -ArgumentList "serve --host 0.0.0.0 --port 8080" | Out-Null
     Write-Host "Started Open WebUI." -ForegroundColor Green
+}
+
+# GPU-busy banner watcher - purely a UI nicety on top of Open WebUI, so
+# only bother if Open WebUI is actually installed. Uses its own PID file
+# (unlike Ollama/Open WebUI above) since it's a bare powershell.exe
+# process - Get-Process -Name wouldn't reliably tell it apart from any
+# other PowerShell window.
+$watcherPidFile = Join-Path $PSScriptRoot ".gpu-banner-watcher.pid"
+$watcherRunning = $false
+if (Test-Path $watcherPidFile) {
+    $watcherPid = Get-Content $watcherPidFile -ErrorAction SilentlyContinue
+    $watcherRunning = $watcherPid -and (Get-Process -Id $watcherPid -ErrorAction SilentlyContinue)
+}
+if (-not $webuiInstalled) {
+    # already explained above, don't repeat it
+} elseif ($watcherRunning) {
+    Write-Host "GPU-banner watcher already running." -ForegroundColor Yellow
+} else {
+    $watcherScript = Join-Path $PSScriptRoot "gpu-banner-watcher.ps1"
+    $watcherPid = Start-DetachedProcess -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$watcherScript`""
+    Set-Content -Path $watcherPidFile -Value $watcherPid
+    Write-Host "Started GPU-banner watcher." -ForegroundColor Green
 }
 
 Start-Sleep -Seconds 2

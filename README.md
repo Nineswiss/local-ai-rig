@@ -194,6 +194,29 @@ Useful for freeing GPU VRAM when you're not using AI, or for a clean
 restart after a config change. Safe to run any time, whether or not
 either is actually running. Re-run `setup-pc.ps1` to start them again.
 
+## GPU-busy indicator
+
+This PC's one GPU is shared with [forge-ui](https://github.com/Nineswiss/forge-ui)
+(image/video generation) - if both run at once, Ollama gets slower or
+outright fails, silently, with no obvious reason why. `gpu-banner-watcher.ps1`
+watches for that and shows a warning banner at the top of the Open WebUI
+chat UI whenever Forge (or anything else unrecognized) has an active GPU
+context - started automatically by `start-pc.ps1`, stopped by `stop-pc.ps1`.
+It's a nicety layered on top, not a dependency - everything else here works
+fine if it's not running.
+
+**One manual step to enable it:** log into Open WebUI, go to **Settings →
+Account → API Keys**, generate a key, and save it (no quotes, no trailing
+newline) to a file named `.openwebui-api-key` in this folder. Without that
+file the watcher just logs a warning and keeps retrying every 30s - nothing
+breaks, the banner just never appears.
+
+The banner can't say exactly how much VRAM the other app holds (this GPU/
+driver combo doesn't report that per-process - `gpu-status.ps1` has the
+details), only that something else has an active context and the GPU's
+overall usage - close enough to know to wait rather than needing an exact
+number.
+
 ## Choosing a model
 
 12GB VRAM comfortably fits a 14B model at 4-bit quant, fully GPU-resident.

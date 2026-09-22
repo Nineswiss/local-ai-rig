@@ -41,6 +41,16 @@ if (-not $OllamaOnly) {
         $procs | Stop-Process -Force
         Write-Host "Stopped Open WebUI." -ForegroundColor Green
     }
+
+    $watcherPidFile = Join-Path $PSScriptRoot ".gpu-banner-watcher.pid"
+    if (Test-Path $watcherPidFile) {
+        $watcherPid = Get-Content $watcherPidFile -ErrorAction SilentlyContinue
+        Remove-Item $watcherPidFile -ErrorAction SilentlyContinue
+        if ($watcherPid -and (Get-Process -Id $watcherPid -ErrorAction SilentlyContinue)) {
+            Stop-Process -Id $watcherPid -Force
+            Write-Host "Stopped GPU-banner watcher." -ForegroundColor Green
+        }
+    }
 }
 
 Start-Sleep -Seconds 1
