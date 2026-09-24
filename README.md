@@ -234,6 +234,31 @@ you load the page fresh (new tab, or navigate to the bare
 `http://<host>.local:8080` URL rather than an already-open chat) - Open
 WebUI only fetches banners on page load, not live.
 
+## UI/UX design generation (UIGEN-FX)
+
+`uigen-fx:4b` ([Tesslate/UIGEN-FX-4B-Preview](https://huggingface.co/Tesslate/UIGEN-FX-4B-Preview),
+Qwen3-4B fine-tuned specifically on frontend code) generates working
+HTML/CSS/Tailwind/React markup for a UI from a plain description - it
+outputs *code*, not an image, so the deliverable is a page/component you
+paste into a project, not a picture (that's forge-ui's job - see its
+README if you want an actual rendered mockup image instead).
+
+**Not part of `setup-pc.ps1`** - pulled manually since it's not on Ollama's
+own registry, only Hugging Face:
+
+```
+ollama pull hf.co/QuantFactory/UIGEN-FX-4B-Preview-GGUF:Q4_K_M
+ollama cp hf.co/QuantFactory/UIGEN-FX-4B-Preview-GGUF:Q4_K_M uigen-fx:4b
+ollama rm hf.co/QuantFactory/UIGEN-FX-4B-Preview-GGUF:Q4_K_M
+```
+
+Small (2.7GB Q4_K_M quant, fully GPU-resident alongside anything else here)
+and fast. Verified end-to-end: generated a complete, valid Tailwind pricing
+card component from a one-line prompt. Pick it from the model picker in
+[Browser chat](#browser-chat) like any other model - no special Open WebUI
+config needed (no vision, no tool-calling, so none of the settings
+`setup-pc.ps1` applies to the other models are relevant here).
+
 ## Choosing a model
 
 12GB VRAM comfortably fits a 14B model at 4-bit quant, fully GPU-resident.
