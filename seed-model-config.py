@@ -48,6 +48,25 @@ MODEL_CONFIG = {
             "description": "\U0001F9E0 Best for complex, multi-file requests (built for agentic coding). Slower — partially CPU-offloaded on 12GB VRAM.",
         },
     },
+    "uigen-fx:4b": {
+        # Same "does not support tools" bug as qwen2.5vl:7b above - Open
+        # WebUI misdetects tool-calling support on this GGUF import (pulled
+        # via hf.co, not Ollama's own registry - see README). Not a model
+        # limitation, same fix.
+        "params": {"function_calling": "legacy"},
+        "meta": {
+            "description": "\U0001F3A8 Generates HTML/CSS/Tailwind/React UI code from a description. Not an image model.",
+            "builtinTools": {
+                "web_search": False,
+                "image_generation": False,
+                "code_interpreter": False,
+                "tasks": False,
+                "automations": False,
+                "calendar": False,
+                "subagents": False,
+            },
+        },
+    },
 }
 
 DEFAULT_META = {
