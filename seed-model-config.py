@@ -53,9 +53,28 @@ MODEL_CONFIG = {
         # WebUI misdetects tool-calling support on this GGUF import (pulled
         # via hf.co, not Ollama's own registry - see README). Not a model
         # limitation, same fix.
-        "params": {"function_calling": "legacy"},
+        #
+        # The system prompt forces raw output into a single fenced ```html
+        # block - confirmed live that without this, the model's raw HTML
+        # (no fence) just renders as plain escaped text in the chat instead
+        # of Open WebUI's live-preview Artifact panel. Open WebUI's
+        # Artifacts feature also only renders complete single-file
+        # HTML/SVG, not React/JSX, so this steers the model away from the
+        # React output its own docs otherwise advertise.
+        "params": {
+            "function_calling": "legacy",
+            "system": (
+                "You generate complete, single-file HTML UI mockups (inline "
+                "Tailwind via the CDN script tag, inline CSS/JS as needed - "
+                "no React/JSX, no build step). Always wrap the ENTIRE output "
+                "in exactly one fenced markdown code block starting with "
+                "```html and ending with ```, with no other text before or "
+                "after the fence - this is required to trigger Open WebUI's "
+                "live preview."
+            ),
+        },
         "meta": {
-            "description": "\U0001F3A8 Generates HTML/CSS/Tailwind/React UI code from a description. Not an image model.",
+            "description": "\U0001F3A8 Generates HTML/CSS/Tailwind UI mockups with a live preview. Not an image model.",
             "builtinTools": {
                 "web_search": False,
                 "image_generation": False,
